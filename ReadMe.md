@@ -2,52 +2,103 @@
 
 # Investigation of Alternative Data Structures for WordSearch Puzzles
 
-## Overview
+## Design
 
-The objective of this assessment is to develop a C++ program to implement alternative data structures for WordSearch puzzles, and related WordSearch dictionaries, and to investigate and report on their operational efficiency.
+This implementation is structured around two primary components: the representation of the puzzle grid and the representation of the dictionary. Each component has both a simple and an advanced implementation, allowing for four distinct combinations. This design enables direct comparison between different data structure strategies and their impact on performance.
+The simple puzzle is implemented using a two-dimensional std::vector<std::vector<char>>, providing direct and intuitive access to grid elements via row and column indices. This approach is straightforward and easy to maintain, but requires repeated boundary checking and recalculation of neighbouring positions during traversal.
 
-A WordSearch puzzle comprises a rectangular (normally square) grid of letters in which a number of words are hidden, and the goal of the puzzle is to find all the words present.  The number of words hidden may or may not be specified, and the search may be aided by a dictionary of words to find, or it may be that the topic context is known (e.g. computer science) and the puzzler has to use their knowledge to decide what relevant words they can find.
+In contrast, the advanced puzzle representation uses a flattened std::vector<GridCell>, where each GridCell contains not only the letter and its coordinates but also pointers to its eight neighbouring cells. This effectively transforms the grid into a graph-like structure. Traversal operations are simplified by following precomputed neighbour pointers rather than recalculating indices. While this reduces computational overhead during traversal, it increases memory usage due to the storage of multiple pointers per cell.
 
-The words may be hidden within rows, columns or diagonally within the grid, in either direction (see illustration).  Words may also cross over, so one letter cell in the grid may contribute to several words.
+The dictionary is similarly implemented in two forms. The simple dictionary uses a std::vector<std::string>, where each word is stored independently and processed sequentially. This approach is easy to implement but does not support efficient prefix-based searching, resulting in redundant computations when scanning the grid for each word.
 
-![Word search](grid_complete.png)
+The advanced dictionary employs a Trie data structure, where each node represents a character and contains up to 26 child pointers. Words are inserted character by character, and complete words are marked using a boolean flag. This structure enables efficient prefix-based searching, allowing the algorithm to terminate early when no valid continuation exists. As a result, unnecessary comparisons are significantly reduced.
 
-If a dictionary is provided to support the searching, this may contain either the target words only, or the target words together with many other words to make the puzzle more challenging.
+The system operates by selecting one of four solver strategies depending on the chosen combination of puzzle and dictionary structures. These include simple-simple, simple-advanced, advanced-simple, and advanced-advanced configurations. Each solver method is explicitly implemented, allowing for detailed performance measurement and comparison.
 
-In this assessment, the puzzle grid can be assumed to be square.  The size of the square is provided in the text file containing the puzzle.  There will also be dictionaries of words to support the search in each puzzle grid.  The objective is to develop and implement relevant data structures to represent the grid and the dictionary for each puzzle, and to evaluate the performance of these data structures as your program solves each puzzle.
+## UML Class Diagram
+```mermaid
+classDiagram
 
-Two alternative structures for each aspect are described in more detail below.  The puzzle Grid may be either a simple array of characters, or a linked structure of objects to hold puzzle-letter characters and links; the Dictionary may be an array of Strings or a tree structure of objects to hold word-letter characters and links.
+class WordSearch {
+  -string _puzzleFile
+  -string _dictionaryFile
+  -int _gridSize
+  -vector<vector<char>> _simpleGrid
+  -vector<GridCell> _advancedCells
+  -GridCell* _topLeft
+  -vector<string> _simpleDictionary
+  -TrieNode* _trieRoot
+  -vector<string> _wordList
+  -vector<MatchedWord> _matchedWords
+  -vector<string> _unmatchedWords
+  -bool _usingAdvancedPuzzle
+  -bool _usingAdvancedDictionary
+  -uint64_t _gridCellsVisited
+  -uint64_t _dictEntriesVisited
 
-You are required to develop a C++ program that implements all 4 data structures.  You should then add diagnostic code to report on the behaviour of the data structures while solving wordsearch puzzles.  Finally, you must review the different structures and consider their relative efficiency, and document your findings in the lab book.
+  +createSimplePuzzle()
+  +createAdvancedPuzzle()
+  +createSimpleDictionary()
+  +createAdvancedDictionary()
+  +solvePuzzle()
+  +outputResults()
+}
 
-## Input and Output
+class GridCell {
+  char letter
+  int row
+  int col
+  GridCell* neighbors[8]
+}
 
-Each puzzle will be in a text file called `puzzle.txt` and you are to implement code that can populate the grid of your data structure by reading the letters contained in the file.  The data file consists of a single integer (n),  followed by n * n letters, each in the range A-Z.  You can assume that all letters and words provided are in upper-case format.
+class TrieNode {
+  bool isWord
+  string word
+  TrieNode* children[26]
+}
 
-As you solve the puzzle using each combination of your data structures, you are to output a number of findings (described later) to appropriately named files i.e.
+class MatchedWord {
+  int col
+  int row
+  string word
+}
 
-- `simple_puzzle_simple_dictionary.txt`
-- `advanced_puzzle_simple_dictionary.txt`
-- `simple_puzzle_advanced_dictionary.txt`
-- `advanced_puzzle_advanced_dictionary.txt`
+WordSearch --> GridCell
+WordSearch --> TrieNode
+WordSearch --> MatchedWord
+```
 
-These files must use the format specified in **Appendix A**.
+## Design Critique
 
-A dictionary will be provided in `dictionary.txt`.
+The design demonstrates a clear separation of concerns between puzzle representation and dictionary representation. This modularity allows each component to be developed, tested, and optimised independently. Additionally, the use of four distinct configurations enables systematic performance comparison.
 
-Unseen puzzles and dictionaries will be used in the marking of this assessment and some diagnostics will be performed on your results file.  Therefore, failure to use the correct file names and failure to output findings in the correct format will result in a loss of marks.
+A notable strength of the design is the implementation of the Trie structure for the advanced dictionary. This allows for efficient prefix-based searching and significantly reduces unnecessary computations during the solving phase. The inclusion of performance metrics, such as grid cell visits and dictionary entry visits, further enhances the analytical value of the system.
 
-## Structures for the Puzzle Grid
+However, several weaknesses are present. The use of raw pointers in the Trie implementation introduces potential risks related to memory management, including memory leaks and undefined behaviour if not handled carefully. Although a recursive deletion function is provided, this approach is less robust than modern alternatives such as smart pointers.
 
-- The simplest structure for the puzzle grid is a 2D array of characters.  This can be populated by reading from a given text data file (one line of characters per row of the grid) and traversed simply across rows (back and forth); by columns (up and down) and by diagonals (main and secondary, in either direction) by suitable use of loops or similar constructs, with appropriate adjustment of array-index values.  From each grid position, your program should step along each direction in turn, comparing each letter sequence against the dictionary content to see if each sequence forms a word contained in the dictionary data.  The puzzle's size is defined in the text data file.
+Another limitation is the duplication of logic across the four solver methods. While this makes each approach explicit, it reduces maintainability and increases the likelihood of inconsistencies. Furthermore, the advanced grid structure, while theoretically efficient, introduces significant memory overhead due to the storage of neighbour pointers, which may negatively impact cache performance.
 
-- A more advanced data structure recognises that any letter cell in the grid can form part of eight sequences (horizontal, vertical, and two diagonals, each of which may be read in either direction).  Therefore, a data structure can be created based on individual 'letter cell' objects that are linked into sequences that can be uniformly checked by one standard comparison method.  This comparison method would be invoked for each direction from each cell of the puzzle grid in turn, to compare the letter sequences from that point against the dictionary content.  Regular row-by row traversal of this structure will remain possible (e.g., for data loading) by following the forward pointing horizontal links for each row, and the downward vertical links from the first cell in each row, starting from the top left corner.  The puzzle's size is defined in the text data file.
+The design could be improved by adopting modern C++ memory management techniques, such as std::unique_ptr, to ensure safer resource handling. Additionally, the introduction of a strategy pattern could eliminate the need for multiple solver methods by encapsulating behaviour in interchangeable components. Reducing redundancy in the Trie structure, for example by avoiding storage of full words at each terminal node, would also improve memory efficiency.
 
-## Structures for the Dictionary
+## Performance Analysis
 
-- The simplest structure for the dictionary is an array of `std::string` (or `std::vector<std::string>`).  This can be populated by reading from a text file (one line per word or string value) then searched systematically to match puzzle grid content as the letter sequences are traversed.
+The performance of the system varies significantly depending on the combination of puzzle and dictionary data structures used.
 
-- A more advanced data structure recognises that many longer words may begin with the same letter sequence as (or the entirety of) some shorter word(s).  For example, the dictionary may contain the words `PROJECT` and `PROJECTOR`, therefore `PROJECTOR` only requires two more letters matching than the word `PROJECT`.  If the word matching process has to start each dictionary word string from the beginning, then such common sequences will be matched several times until the match is found or the search completely fails.
+The simple puzzle combined with the simple dictionary represents the least efficient approach. In this configuration, each word in the dictionary is searched independently across the entire grid, resulting in a high number of redundant operations. Both the number of grid cells visited and dictionary entries processed are maximised, leading to poor overall performance.
+
+When the simple puzzle is combined with the advanced dictionary (Trie), performance improves substantially. Instead of searching for each word individually, the algorithm traverses the grid once and builds potential matches incrementally. The Trie enables early termination when a sequence does not correspond to any valid prefix, significantly reducing the search space.
+
+The advanced puzzle combined with the simple dictionary offers modest performance improvements. The use of neighbour pointers simplifies traversal and reduces the computational cost of index calculations. However, these gains are partially offset by increased memory usage and potential cache inefficiencies.
+
+The most efficient configuration is the advanced puzzle combined with the advanced dictionary. This approach leverages both efficient traversal and efficient lookup, minimising redundant operations and achieving the best overall performance. The combination of precomputed neighbour relationships and prefix-based pruning results in a highly optimised solution.
+
+In comparing search strategies, selecting words from the dictionary and searching for them in the grid is generally less efficient than traversing the grid and matching sequences against the dictionary. The former approach leads to repeated scans of the grid, while the latter allows for shared traversal paths and early pruning. The effectiveness of each strategy is strongly influenced by the underlying data structures. In particular, the Trie enables the grid-first approach by supporting efficient prefix matching, whereas a simple vector-based dictionary does not.
+
+## Parasoft C++ Static Test
+
+## Additional Solution
+
+### Bit-parallelism 
 
 ## Additional data structures (optional)
 
