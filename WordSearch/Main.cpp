@@ -2,6 +2,8 @@
 
 #include "WordSearch.h"
 
+// by far the best version yet lolol
+
 int main(int, char**) {
 
 	const std::string puzzle("grid.txt");
