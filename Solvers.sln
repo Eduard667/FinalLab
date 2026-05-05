@@ -5,7 +5,7 @@ VisualStudioVersion = 17.14.36811.4
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WordSearch", "WordSearch\WordSearch.vcxproj", "{EFB729EE-E314-4325-9460-B3844A062A41}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FastSolver", "..\UOH-CS-Level5\lab-i-final-lab-Eduard667\FastSolver\FastSolver.vcxproj", "{D250C088-F7D1-4343-98EF-93291907C31F}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AlternativeSolver", "..\..\UOH-CS-Level5\lab-i-final-lab-Eduard667\FastSolver\FastSolver.vcxproj", "{D250C088-F7D1-4343-98EF-93291907C31F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
